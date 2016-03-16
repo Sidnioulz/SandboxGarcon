@@ -49,6 +49,12 @@ enum
   PROP_COMMAND,
   PROP_TRY_EXEC,
   PROP_HIDDEN,
+  PROP_SANDBOXED,
+  PROP_SANDBOX_PROFILE,
+  PROP_SANDBOX_ENABLE_NETWORK,
+  PROP_SANDBOX_FS_MODE,
+  PROP_SANDBOX_FS_DISPOSABLE,
+  PROP_SANDBOX_FS_SYNC_FOLDERS,
   PROP_PATH,
 };
 
@@ -137,6 +143,14 @@ struct _GarconMenuItemPrivate
 
   /* Hidden value */
   guint     hidden : 1;
+
+  /* Sandbox values */
+  guint     sandboxed : 1;
+  gchar    *sandbox_profile;
+  guint     sandbox_enable_network : 1;
+  gint      sandbox_fs_mode;
+  guint     sandbox_fs_disposable : 1;
+  gchar   **sandbox_fs_sync_folders;
 
   /* Counter keeping the number of menus which use this item. This works
    * like a reference counter and should be increased / decreased by GarconMenu
@@ -340,6 +354,91 @@ garcon_menu_item_class_init (GarconMenuItemClass *klass)
                                                           G_PARAM_STATIC_STRINGS));
 
  /**
+   * GarconMenuItem:sandboxed:
+   *
+   * The app must be executed with Firejail.
+   **/
+  g_object_class_install_property (gobject_class,
+                                   PROP_SANDBOXED,
+                                   g_param_spec_boolean ("sandboxed",
+                                                         "Sandboxed",
+                                                         "Whether the application has to be run with Firejail",
+                                                          XFCE_FIREJAIL_RUN_IN_SANDBOX_DEFAULT,
+                                                          G_PARAM_READWRITE |
+                                                          G_PARAM_STATIC_STRINGS));
+
+  /**
+   * GarconMenuItem:sandbox-profile:
+   *
+   * Name of the Firejail sandbox profile to be used for this menu item.
+   **/
+  g_object_class_install_property (gobject_class,
+                                   PROP_SANDBOX_PROFILE,
+                                   g_param_spec_string ("sandbox-profile",
+                                                        "Sandbox profile",
+                                                        "Name of the sandbox profile",
+                                                        NULL,
+                                                        G_PARAM_READWRITE |
+                                                        G_PARAM_STATIC_STRINGS));
+
+ /**
+   * GarconMenuItem:sandbox-enable-network:
+   *
+   * Whether the application has access to a network device under Firejail.
+   **/
+  g_object_class_install_property (gobject_class,
+                                   PROP_SANDBOX_ENABLE_NETWORK,
+                                   g_param_spec_boolean ("sandbox-enable-network",
+                                                         "Enable network in sandbox",
+                                                         "Whether the application has access to a network device",
+                                                          XFCE_FIREJAIL_ENABLE_NETWORK_DEFAULT,
+                                                          G_PARAM_READWRITE |
+                                                          G_PARAM_STATIC_STRINGS));
+
+ /**
+   * GarconMenuItem:sandbox-fs-mode:
+   *
+   * The type of access to the user's home when running under Firejail.
+   **/
+  g_object_class_install_property (gobject_class,
+                                   PROP_SANDBOX_FS_MODE,
+                                   g_param_spec_int ("sandbox-fs-mode",
+                                                     "Sandbox filesystem mode",
+                                                     "How the application has access to the user's Home files",
+                                                      FS_PRIV_FULL,
+                                                      FS_PRIV_PRIVATE,
+                                                      XFCE_FIREJAIL_FS_MODE_DEFAULT,
+                                                      G_PARAM_READWRITE |
+                                                      G_PARAM_STATIC_STRINGS));
+
+ /**
+   * GarconMenuItem:sandbox-fs-disposable:
+   *
+   * Whether the sandbox saves changes made to the Home files when run with Firejail.
+   **/
+  g_object_class_install_property (gobject_class,
+                                   PROP_SANDBOX_FS_DISPOSABLE,
+                                   g_param_spec_boolean ("sandbox-fs-disposable",
+                                                         "Sandbox filesystem disposable",
+                                                         "Whether the sandbox saves changes made to the Home files",
+                                                          XFCE_FIREJAIL_DISPOSABLE_DEFAULT,
+                                                          G_PARAM_READWRITE |
+                                                          G_PARAM_STATIC_STRINGS));
+
+ /**
+   * GarconMenuItem:sandbox-fs-sync-folders:
+   *
+   * The app must be executed with Firejail.
+   **/
+  g_object_class_install_property (gobject_class,
+                                   PROP_SANDBOX_FS_SYNC_FOLDERS,
+                                   g_param_spec_pointer ("sandbox-fs-sync-folders",
+                                                         "Sandbox synchronised folders",
+                                                         "The folders synchronised with the host system",
+                                                          G_PARAM_READWRITE |
+                                                          G_PARAM_STATIC_STRINGS));
+
+ /**
    * GarconMenuItem:path:
    *
    * Working directory the application should be started in.
@@ -405,8 +504,10 @@ garcon_menu_item_finalize (GObject *object)
   g_free (item->priv->command);
   g_free (item->priv->try_exec);
   g_free (item->priv->icon_name);
+  g_free (item->priv->sandbox_profile);
   g_free (item->priv->path);
 
+  g_strfreev(item->priv->sandbox_fs_sync_folders);
   g_strfreev (item->priv->only_show_in);
   g_strfreev (item->priv->not_show_in);
 
@@ -482,6 +583,30 @@ garcon_menu_item_get_property (GObject    *object,
       g_value_set_string (value, garcon_menu_item_get_path (item));
       break;
 
+    case PROP_SANDBOXED:
+      g_value_set_boolean (value, garcon_menu_item_get_sandboxed (item));
+      break;
+
+    case PROP_SANDBOX_PROFILE:
+      g_value_set_string (value, garcon_menu_item_get_sandbox_profile (item));
+      break;
+
+    case PROP_SANDBOX_ENABLE_NETWORK:
+      g_value_set_boolean (value, garcon_menu_item_get_sandbox_enable_network (item));
+      break;
+
+    case PROP_SANDBOX_FS_MODE:
+      g_value_set_int (value, garcon_menu_item_get_sandbox_fs_mode (item));
+      break;
+
+    case PROP_SANDBOX_FS_DISPOSABLE:
+      g_value_set_boolean (value, garcon_menu_item_get_sandbox_fs_disposable (item));
+      break;
+
+    case PROP_SANDBOX_FS_SYNC_FOLDERS:
+      g_value_set_pointer (value, garcon_menu_item_get_sandbox_fs_sync_folders (item));
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -550,6 +675,30 @@ garcon_menu_item_set_property (GObject      *object,
 
     case PROP_PATH:
       garcon_menu_item_set_path (item, g_value_get_string (value));
+      break;
+
+    case PROP_SANDBOX_PROFILE:
+      garcon_menu_item_set_sandbox_profile (item, g_value_get_string (value));
+      break;
+
+    case PROP_SANDBOXED:
+      garcon_menu_item_set_sandboxed (item, g_value_get_boolean (value));
+      break;
+
+    case PROP_SANDBOX_ENABLE_NETWORK:
+      garcon_menu_item_set_sandbox_enable_network (item, g_value_get_boolean (value));
+      break;
+
+    case PROP_SANDBOX_FS_MODE:
+      garcon_menu_item_set_sandbox_fs_mode (item, g_value_get_int (value));
+      break;
+
+    case PROP_SANDBOX_FS_DISPOSABLE:
+      garcon_menu_item_set_sandbox_fs_disposable (item, g_value_get_boolean (value));
+      break;
+
+    case PROP_SANDBOX_FS_SYNC_FOLDERS:
+      garcon_menu_item_set_sandbox_fs_sync_folders (item, g_value_get_pointer (value));
       break;
 
     default:
@@ -718,6 +867,13 @@ garcon_menu_item_new (GFile *file)
   gchar         **mt;
   gchar         **str_list;
   gchar          *url_exec = NULL;
+  gboolean        sandboxed;
+  const gchar    *sandbox_profile;
+  gboolean        sandbox_enable_network;
+  gint            sandbox_fs_mode;
+  gboolean        sandbox_fs_disposable;
+  gchar         **sandbox_fs_sync_folders;
+  
 
   g_return_val_if_fail (G_IS_FILE (file), NULL);
   g_return_val_if_fail (g_file_is_native (file), NULL);
@@ -754,6 +910,13 @@ garcon_menu_item_new (GFile *file)
                        || xfce_rc_read_bool_entry (rc, "X-KDE-StartupNotify", FALSE);
       hidden = xfce_rc_read_bool_entry (rc, G_KEY_FILE_DESKTOP_KEY_HIDDEN, FALSE);
 
+      sandboxed = xfce_rc_read_bool_entry (rc, XFCE_FIREJAIL_RUN_IN_SANDBOX_KEY, XFCE_FIREJAIL_RUN_IN_SANDBOX_DEFAULT);
+      sandbox_profile = g_strdup (xfce_rc_read_entry (rc, XFCE_FIREJAIL_PROFILE_KEY, NULL));
+      sandbox_enable_network = xfce_rc_read_bool_entry (rc, XFCE_FIREJAIL_ENABLE_NETWORK_KEY, XFCE_FIREJAIL_ENABLE_NETWORK_DEFAULT);
+      sandbox_fs_mode = xfce_rc_read_int_entry (rc, XFCE_FIREJAIL_FS_MODE_KEY, XFCE_FIREJAIL_FS_MODE_DEFAULT);
+      sandbox_fs_disposable = xfce_rc_read_bool_entry (rc, XFCE_FIREJAIL_DISPOSABLE_KEY, XFCE_FIREJAIL_DISPOSABLE_DEFAULT);
+      sandbox_fs_sync_folders = xfce_rc_read_list_entry (rc, XFCE_FIREJAIL_FS_SYNC_FOLDERS_KEY, ";");
+
       /* Allocate a new menu item instance */
       item = g_object_new (GARCON_TYPE_MENU_ITEM,
                            "file", file,
@@ -768,6 +931,12 @@ garcon_menu_item_new (GFile *file)
                            "supports-startup-notification", startup_notify,
                            "path", path,
                            "hidden", hidden,
+                           "sandboxed", sandboxed,
+                           "sandbox-profile", sandbox_profile,
+                           "sandbox-enable-network", sandbox_enable_network,
+                           "sandbox-fs-mode", sandbox_fs_mode,
+                           "sandbox-fs-disposable", sandbox_fs_disposable,
+                           "sandbox-fs-sync-folders", sandbox_fs_sync_folders,
                            NULL);
 
       /* Determine the categories this application should be shown in */
@@ -993,6 +1162,16 @@ garcon_menu_item_reload_from_file (GarconMenuItem  *item,
   /* Set the rest of the private data directly */
   item->priv->only_show_in = xfce_rc_read_list_entry (rc, G_KEY_FILE_DESKTOP_KEY_ONLY_SHOW_IN, ";");
   item->priv->not_show_in = xfce_rc_read_list_entry (rc, G_KEY_FILE_DESKTOP_KEY_NOT_SHOW_IN, ";");
+
+  /* Set the sandbox prameters */
+  item->priv->sandboxed = xfce_rc_read_bool_entry (rc, XFCE_FIREJAIL_RUN_IN_SANDBOX_KEY, XFCE_FIREJAIL_RUN_IN_SANDBOX_DEFAULT);
+  item->priv->sandbox_profile = g_strdup (xfce_rc_read_entry (rc, XFCE_FIREJAIL_PROFILE_KEY, NULL));
+  item->priv->sandbox_enable_network = xfce_rc_read_bool_entry (rc, XFCE_FIREJAIL_ENABLE_NETWORK_KEY, XFCE_FIREJAIL_ENABLE_NETWORK_DEFAULT);
+  item->priv->sandbox_fs_mode = xfce_rc_read_int_entry (rc, XFCE_FIREJAIL_FS_MODE_KEY, XFCE_FIREJAIL_FS_MODE_DEFAULT);
+  item->priv->sandbox_fs_disposable = xfce_rc_read_bool_entry (rc, XFCE_FIREJAIL_DISPOSABLE_KEY, XFCE_FIREJAIL_DISPOSABLE_DEFAULT);
+  item->priv->sandbox_fs_sync_folders = xfce_rc_read_list_entry (rc, XFCE_FIREJAIL_FS_SYNC_FOLDERS_KEY, ";");
+
+  printf ("READY\n\n\n");
 
   /* Flush property notifications */
   g_object_thaw_notify (G_OBJECT (item));
@@ -1547,4 +1726,200 @@ garcon_menu_item_decrement_allocated (GarconMenuItem *item)
 
   if (item->priv->num_allocated > 0)
     item->priv->num_allocated--;
+}
+
+
+
+gboolean
+garcon_menu_item_get_sandboxed (GarconMenuItem *item)
+{
+  g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), XFCE_FIREJAIL_RUN_IN_SANDBOX_DEFAULT);
+  return item->priv->sandboxed;
+}
+
+
+
+void
+garcon_menu_item_set_sandboxed (GarconMenuItem *item,
+                                gboolean        sandboxed)
+{
+  g_return_if_fail (GARCON_IS_MENU_ITEM (item));
+
+  /* Abort if old and new value are equal */
+  if (item->priv->sandboxed == sandboxed)
+    return;
+
+  /* Assign new value */
+  item->priv->sandboxed = !!sandboxed;
+
+  /* Notify listeners */
+  g_object_notify (G_OBJECT (item), "sandboxed");
+}
+
+
+
+const gchar*
+garcon_menu_item_get_sandbox_profile (GarconMenuItem *item)
+{
+  g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), NULL);
+  return item->priv->sandbox_profile;
+}
+
+
+
+void
+garcon_menu_item_set_sandbox_profile (GarconMenuItem *item,
+                                      const gchar    *sandbox_profile)
+{
+  g_return_if_fail (GARCON_IS_MENU_ITEM (item));
+
+  /* Abort if old and new sandbox profiles are equal */
+  if (g_strcmp0 (item->priv->sandbox_profile, sandbox_profile) == 0)
+    return;
+
+  /* Assign new sandbox_profile */
+  g_free (item->priv->sandbox_profile);
+  item->priv->sandbox_profile = g_strdup (sandbox_profile);
+
+  /* Notify listeners */
+  g_object_notify (G_OBJECT (item), "sandbox-profile");
+}
+
+
+
+gboolean
+garcon_menu_item_get_sandbox_enable_network (GarconMenuItem *item)
+{
+  g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), XFCE_FIREJAIL_ENABLE_NETWORK_DEFAULT);
+  return item->priv->sandbox_enable_network;
+}
+
+
+
+void
+garcon_menu_item_set_sandbox_enable_network (GarconMenuItem *item,
+                                             gboolean        sandbox_enable_network)
+{
+  g_return_if_fail (GARCON_IS_MENU_ITEM (item));
+
+  /* Abort if old and new value are equal */
+  if (item->priv->sandbox_enable_network == sandbox_enable_network)
+    return;
+
+  /* Assign new value */
+  item->priv->sandbox_enable_network = !!sandbox_enable_network;
+
+  /* Notify listeners */
+  g_object_notify (G_OBJECT (item), "sandbox-enable-network");
+}
+
+
+
+gint
+garcon_menu_item_get_sandbox_fs_mode (GarconMenuItem *item)
+{
+  g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), XFCE_FIREJAIL_FS_MODE_DEFAULT);
+  return item->priv->sandbox_fs_mode;
+}
+
+
+
+void
+garcon_menu_item_set_sandbox_fs_mode (GarconMenuItem *item,
+                                      gint            sandbox_fs_mode)
+{
+  g_return_if_fail (GARCON_IS_MENU_ITEM (item));
+
+  /* Abort if old and new value are equal */
+  if (item->priv->sandbox_fs_mode == sandbox_fs_mode)
+    return;
+
+  /* Assign new value */
+  item->priv->sandbox_fs_mode = sandbox_fs_mode;
+
+  /* Notify listeners */
+  g_object_notify (G_OBJECT (item), "sandbox-fs-mode");
+}
+
+
+
+gboolean
+garcon_menu_item_get_sandbox_fs_disposable (GarconMenuItem *item)
+{
+  g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), XFCE_FIREJAIL_DISPOSABLE_DEFAULT);
+  return item->priv->sandbox_fs_disposable;
+}
+
+
+
+void
+garcon_menu_item_set_sandbox_fs_disposable (GarconMenuItem *item,
+                                            gboolean        sandbox_fs_disposable)
+{
+  g_return_if_fail (GARCON_IS_MENU_ITEM (item));
+
+  /* Abort if old and new value are equal */
+  if (item->priv->sandbox_fs_disposable == sandbox_fs_disposable)
+    return;
+
+  /* Assign new value */
+  item->priv->sandbox_fs_disposable = !!sandbox_fs_disposable;
+
+  /* Notify listeners */
+  g_object_notify (G_OBJECT (item), "sandbox-fs-disposable");
+}
+
+
+
+gchar **
+garcon_menu_item_get_sandbox_fs_sync_folders (GarconMenuItem *item)
+{
+  g_return_val_if_fail (GARCON_IS_MENU_ITEM (item), NULL);
+  return g_strdupv (item->priv->sandbox_fs_sync_folders);
+}
+
+
+
+void
+garcon_menu_item_set_sandbox_fs_sync_folders (GarconMenuItem *item,
+                                              gchar         **sandbox_fs_sync_folders)
+{
+  g_return_if_fail (GARCON_IS_MENU_ITEM (item));
+
+  /* Abort if old and new value are equal */
+  if (sandbox_fs_sync_folders == NULL)
+  {
+    if (item->priv->sandbox_fs_sync_folders == NULL)
+      return;
+  }
+  else if (item->priv->sandbox_fs_sync_folders)
+  {
+    gboolean equal;
+    gsize i;
+
+    for (equal = TRUE, i = 0; equal && sandbox_fs_sync_folders[i] && item->priv->sandbox_fs_sync_folders[i]; i++)
+      equal = g_strcmp0 (sandbox_fs_sync_folders[i], item->priv->sandbox_fs_sync_folders[i]);
+    if (equal)
+      return;
+  }
+
+  /* Assign new value */
+  if (sandbox_fs_sync_folders == NULL)
+    item->priv->sandbox_fs_sync_folders = NULL;
+  else
+    {
+      gsize count, new_count;
+
+      for (count = 0; sandbox_fs_sync_folders[count]; count++);
+      item->priv->sandbox_fs_sync_folders = g_malloc0 (sizeof (char *) * (count + 1));
+      
+      for (count = 0, new_count = 0; sandbox_fs_sync_folders[count]; count++)
+        {
+          if (g_strcmp0 (sandbox_fs_sync_folders[count], ""))
+            item->priv->sandbox_fs_sync_folders[new_count++] = sandbox_fs_sync_folders[count];
+        }
+    }
+
+  /* Notify listeners */
+  g_object_notify (G_OBJECT (item), "sandbox-fs-sync-folders");
 }

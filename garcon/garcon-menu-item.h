@@ -42,6 +42,30 @@ typedef struct _GarconMenuItem        GarconMenuItem;
 #define GARCON_IS_MENU_ITEM_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GARCON_TYPE_MENU_ITEM))
 #define GARCON_MENU_ITEM_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GARCON_TYPE_MENU_ITEM, GarconMenuItemClass))
 
+#ifndef XFCE_FIREJAIL_WIDGET_CONSTANTS
+#define XFCE_FIREJAIL_WIDGET_CONSTANTS
+/* Redefined here so non-GTK apps don't have to link to libxfce4ui */
+
+typedef enum {
+  FS_PRIV_NONE = 0,
+  FS_PRIV_FULL = 1,
+  FS_PRIV_READ_ONLY = 2,
+  FS_PRIV_PRIVATE = 4
+} FsPrivMode;
+
+#define XFCE_FIREJAIL_RUN_IN_SANDBOX_KEY     "X-XfceSandboxWithFirejail"
+#define XFCE_FIREJAIL_PROFILE_KEY            "X-XfceFirejailProfile"
+#define XFCE_FIREJAIL_ENABLE_NETWORK_KEY     "X-XfceFirejailEnableNetwork"
+#define XFCE_FIREJAIL_FS_MODE_KEY            "X-XfceFirejailFsMode"
+#define XFCE_FIREJAIL_DISPOSABLE_KEY         "X-XfceFirejailOverlayDisposable"
+#define XFCE_FIREJAIL_FS_SYNC_FOLDERS_KEY    "X-XfceFirejailSyncFolders"
+
+#define XFCE_FIREJAIL_RUN_IN_SANDBOX_DEFAULT FALSE
+#define XFCE_FIREJAIL_ENABLE_NETWORK_DEFAULT TRUE
+#define XFCE_FIREJAIL_DISPOSABLE_DEFAULT     FALSE
+#define XFCE_FIREJAIL_FS_MODE_DEFAULT        FS_PRIV_FULL
+#endif
+
 struct _GarconMenuItemClass
 {
   GObjectClass __parent__;
@@ -128,6 +152,30 @@ void            garcon_menu_item_unref                             (GarconMenuIt
 gint            garcon_menu_item_get_allocated                     (GarconMenuItem  *item);
 void            garcon_menu_item_increment_allocated               (GarconMenuItem  *item);
 void            garcon_menu_item_decrement_allocated               (GarconMenuItem  *item);
+
+gboolean        garcon_menu_item_get_sandboxed                     (GarconMenuItem  *item);
+void            garcon_menu_item_set_sandboxed                     (GarconMenuItem  *item,
+                                                                    gboolean         sandboxed);
+
+const gchar    *garcon_menu_item_get_sandbox_profile               (GarconMenuItem  *item);
+void            garcon_menu_item_set_sandbox_profile               (GarconMenuItem  *item,
+                                                                    const gchar     *profile);
+
+gboolean        garcon_menu_item_get_sandbox_enable_network        (GarconMenuItem  *item);
+void            garcon_menu_item_set_sandbox_enable_network        (GarconMenuItem  *item,
+                                                                    gboolean         sandbox_enable_network);
+
+gint            garcon_menu_item_get_sandbox_fs_mode               (GarconMenuItem  *item);
+void            garcon_menu_item_set_sandbox_fs_mode               (GarconMenuItem  *item,
+                                                                    gint             sandbox_fs_mode);
+
+gboolean        garcon_menu_item_get_sandbox_fs_disposable         (GarconMenuItem  *item);
+void            garcon_menu_item_set_sandbox_fs_disposable         (GarconMenuItem  *item,
+                                                                    gboolean         sandbox_fs_disposable);
+
+gchar **        garcon_menu_item_get_sandbox_fs_sync_folders       (GarconMenuItem  *item);
+void            garcon_menu_item_set_sandbox_fs_sync_folders       (GarconMenuItem  *item,
+                                                                    gchar **         sandbox_fs_sync_folders);
 
 G_END_DECLS
 
