@@ -178,7 +178,8 @@ void            garcon_menu_item_set_sandbox_fs_sync_folders       (GarconMenuIt
                                                                     gchar **         sandbox_fs_sync_folders);
 
 gchar *         garcon_menu_item_expand_command                    (GarconMenuItem  *item,
-                                                                    const gchar     *command_line);
+                                                                    const gchar     *command_line,
+                                                                    gboolean         ignore_sandboxing);
 
 G_END_DECLS
 

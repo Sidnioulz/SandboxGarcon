@@ -1928,7 +1928,8 @@ garcon_menu_item_set_sandbox_fs_sync_folders (GarconMenuItem *item,
 
 gchar *
 garcon_menu_item_expand_command (GarconMenuItem *item,
-                                 const gchar    *command_line)
+                                 const gchar    *command_line,
+                                 gboolean        ignore_sandboxing)
 {
   gchar       *sandbox_expanded;
   const gchar *default_profile;
@@ -1940,7 +1941,7 @@ garcon_menu_item_expand_command (GarconMenuItem *item,
   gchar       *fs_str;
   gchar       *fs_sync_str;
 
-  if (!garcon_menu_item_get_sandboxed (item))
+  if (!garcon_menu_item_get_sandboxed (item) || ignore_sandboxing)
     {
       return g_strdup_printf ("%s%s",
                               garcon_menu_item_requires_terminal (item)? "exo-open --launch TerminalEmulator ":"",
@@ -1985,7 +1986,7 @@ garcon_menu_item_expand_command (GarconMenuItem *item,
       g_free (previous);
     }
 
-  sandbox_expanded = g_strdup_printf ("firejail \"--name=%s\" %s --net=%s %s %s %s %s",
+  sandbox_expanded = g_strdup_printf ("firejail \"--name=%s\" %s --net=%s %s %s %s%s",
                                       garcon_menu_item_get_name (item),
                                       profile_str? profile_str:"",
                                       network? "auto":"none",
