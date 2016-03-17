@@ -1923,3 +1923,81 @@ garcon_menu_item_set_sandbox_fs_sync_folders (GarconMenuItem *item,
   /* Notify listeners */
   g_object_notify (G_OBJECT (item), "sandbox-fs-sync-folders");
 }
+
+
+
+gchar *
+garcon_menu_item_expand_command (GarconMenuItem *item,
+                                 const gchar    *command_line)
+{
+  gchar       *sandbox_expanded;
+  const gchar *default_profile;
+  gboolean     network;
+  gint         mode;
+  gboolean     disposable;
+  gchar      **folders;
+  gchar       *profile_str;
+  gchar       *fs_str;
+  gchar       *fs_sync_str;
+
+  if (!garcon_menu_item_get_sandboxed (item))
+    {
+      return g_strdup_printf ("%s%s",
+                              garcon_menu_item_requires_terminal (item)? "exo-open --launch TerminalEmulator ":"",
+                              command_line);
+    }
+
+  default_profile = garcon_menu_item_get_sandbox_profile (item);
+  network = garcon_menu_item_get_sandbox_enable_network (item);
+  mode = garcon_menu_item_get_sandbox_fs_mode (item);
+  disposable = garcon_menu_item_get_sandbox_fs_disposable (item);
+  folders = garcon_menu_item_get_sandbox_fs_sync_folders (item);
+  profile_str = NULL;
+  fs_str      = NULL;
+  fs_sync_str = NULL;
+
+  if (default_profile)
+    profile_str = xfce_get_firejail_profile_for_name (default_profile);
+
+  if (mode == FS_PRIV_FULL)
+    {
+      fs_str = NULL;
+    }
+  else if (mode == FS_PRIV_READ_ONLY)
+    {
+      if (disposable)
+        fs_str = "--overlay-home --overlay-disposable";
+      else
+        fs_str = "--overlay-home";
+    }
+  else if (mode == FS_PRIV_PRIVATE)
+    {
+      if (disposable)
+        fs_str = "--overlay-private-home --overlay-disposable";
+      else
+        fs_str = "--overlay-private-home";
+    }
+
+  for (gsize i = 0; folders && folders[i]; i++)
+    {
+      gchar *previous = fs_sync_str;
+      fs_sync_str = g_strdup_printf ("%s \"--overlay-sync=%s\"", previous? previous:"", folders[i]);
+      g_free (previous);
+    }
+
+  sandbox_expanded = g_strdup_printf ("firejail \"--name=%s\" %s --net=%s %s %s %s %s",
+                                      garcon_menu_item_get_name (item),
+                                      profile_str? profile_str:"",
+                                      network? "auto":"none",
+                                      fs_str? fs_str:"",
+                                      fs_sync_str? fs_sync_str:"",
+                                      garcon_menu_item_requires_terminal (item)? "exo-open --launch TerminalEmulator ":"",
+                                      command_line? command_line:"");
+
+  g_free (fs_sync_str);
+  g_free (profile_str);
+  g_strfreev (folders);
+
+  return sandbox_expanded;
+}
+
