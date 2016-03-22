@@ -1956,6 +1956,7 @@ garcon_menu_item_expand_command (GarconMenuItem *item,
   profile_str = NULL;
   fs_str      = NULL;
   fs_sync_str = NULL;
+  gsize i;
 
   if (default_profile)
     profile_str = xfce_get_firejail_profile_for_name (default_profile);
@@ -1979,11 +1980,14 @@ garcon_menu_item_expand_command (GarconMenuItem *item,
         fs_str = "--overlay-private-home";
     }
 
-  for (gsize i = 0; folders && folders[i]; i++)
+  for (i = 0; folders && folders[i]; i++)
     {
-      gchar *previous = fs_sync_str;
-      fs_sync_str = g_strdup_printf ("%s \"--overlay-sync=%s\"", previous? previous:"", folders[i]);
-      g_free (previous);
+      if (g_strcmp0 (folders[i], ""))
+        {
+          gchar *previous = fs_sync_str;
+          fs_sync_str = g_strdup_printf ("%s \"--overlay-sync=%s\"", previous? previous:"", folders[i]);
+          g_free (previous);
+        }
     }
 
   sandbox_expanded = g_strdup_printf ("firejail \"--name=%s\" %s --net=%s %s %s %s%s",
