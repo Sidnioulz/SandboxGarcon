@@ -1171,8 +1171,6 @@ garcon_menu_item_reload_from_file (GarconMenuItem  *item,
   item->priv->sandbox_fs_disposable = xfce_rc_read_bool_entry (rc, XFCE_FIREJAIL_DISPOSABLE_KEY, XFCE_FIREJAIL_DISPOSABLE_DEFAULT);
   item->priv->sandbox_fs_sync_folders = xfce_rc_read_list_entry (rc, XFCE_FIREJAIL_FS_SYNC_FOLDERS_KEY, ";");
 
-  printf ("READY\n\n\n");
-
   /* Flush property notifications */
   g_object_thaw_notify (G_OBJECT (item));
 
