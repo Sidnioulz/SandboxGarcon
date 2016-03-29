@@ -1940,6 +1940,7 @@ garcon_menu_item_expand_command (GarconMenuItem *item,
   gchar       *profile_str;
   gchar       *fs_str;
   gchar       *fs_sync_str;
+  gsize i;
 
   if (!garcon_menu_item_get_sandboxed (item) || ignore_sandboxing)
     {
@@ -1956,7 +1957,6 @@ garcon_menu_item_expand_command (GarconMenuItem *item,
   profile_str = NULL;
   fs_str      = NULL;
   fs_sync_str = NULL;
-  gsize i;
 
   if (default_profile)
     profile_str = xfce_get_firejail_profile_for_name (default_profile);
