@@ -1944,7 +1944,7 @@ garcon_menu_item_expand_command (GarconMenuItem *item,
     {
       return g_strdup_printf ("%s%s",
                               garcon_menu_item_requires_terminal (item)? "exo-open --launch TerminalEmulator ":"",
-                              command_line);
+                              command_line? command_line:"");
     }
 
   default_profile = garcon_menu_item_get_sandbox_profile (item);
