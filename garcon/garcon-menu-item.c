@@ -1978,13 +1978,16 @@ garcon_menu_item_expand_command (GarconMenuItem *item,
         fs_str = "--overlay-private-home";
     }
 
-  for (i = 0; folders && folders[i]; i++)
+  if (mode == FS_PRIV_READ_ONLY || mode == FS_PRIV_PRIVATE)
     {
-      if (g_strcmp0 (folders[i], ""))
+      for (i = 0; folders && folders[i]; i++)
         {
-          gchar *previous = fs_sync_str;
-          fs_sync_str = g_strdup_printf ("%s \"--overlay-sync=%s\"", previous? previous:"", folders[i]);
-          g_free (previous);
+          if (g_strcmp0 (folders[i], ""))
+            {
+              gchar *previous = fs_sync_str;
+              fs_sync_str = g_strdup_printf ("%s \"--overlay-sync=%s\"", previous? previous:"", folders[i]);
+              g_free (previous);
+            }
         }
     }
 
