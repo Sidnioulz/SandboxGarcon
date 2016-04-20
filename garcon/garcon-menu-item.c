@@ -911,7 +911,7 @@ garcon_menu_item_new (GFile *file)
       hidden = xfce_rc_read_bool_entry (rc, G_KEY_FILE_DESKTOP_KEY_HIDDEN, FALSE);
 
       sandboxed = xfce_rc_read_bool_entry (rc, XFCE_FIREJAIL_RUN_IN_SANDBOX_KEY, XFCE_FIREJAIL_RUN_IN_SANDBOX_DEFAULT);
-      sandbox_profile = g_strdup (xfce_rc_read_entry (rc, XFCE_FIREJAIL_PROFILE_KEY, NULL));
+      sandbox_profile = xfce_rc_read_entry (rc, XFCE_FIREJAIL_PROFILE_KEY, NULL);
       sandbox_enable_network = xfce_rc_read_bool_entry (rc, XFCE_FIREJAIL_ENABLE_NETWORK_KEY, XFCE_FIREJAIL_ENABLE_NETWORK_DEFAULT);
       sandbox_fs_mode = xfce_rc_read_int_entry (rc, XFCE_FIREJAIL_FS_MODE_KEY, XFCE_FIREJAIL_FS_MODE_DEFAULT);
       sandbox_fs_disposable = xfce_rc_read_bool_entry (rc, XFCE_FIREJAIL_DISPOSABLE_KEY, XFCE_FIREJAIL_DISPOSABLE_DEFAULT);
