@@ -1896,7 +1896,12 @@ garcon_menu_item_set_sandbox_fs_sync_folders (GarconMenuItem *item,
     gsize i;
 
     for (equal = TRUE, i = 0; equal && sandbox_fs_sync_folders[i] && item->priv->sandbox_fs_sync_folders[i]; i++)
-      equal = g_strcmp0 (sandbox_fs_sync_folders[i], item->priv->sandbox_fs_sync_folders[i]);
+      equal = g_strcmp0 (sandbox_fs_sync_folders[i], item->priv->sandbox_fs_sync_folders[i]) == 0;
+
+    /* check if we reached the end of only one list */
+    if (sandbox_fs_sync_folders[i] != item->priv->sandbox_fs_sync_folders[i])
+      equal = FALSE;
+
     if (equal)
       return;
   }
@@ -1908,13 +1913,16 @@ garcon_menu_item_set_sandbox_fs_sync_folders (GarconMenuItem *item,
     {
       gsize count, new_count;
 
+      if (item->priv->sandbox_fs_sync_folders)
+        g_strfreev (item->priv->sandbox_fs_sync_folders);
+
       for (count = 0; sandbox_fs_sync_folders[count]; count++);
       item->priv->sandbox_fs_sync_folders = g_malloc0 (sizeof (char *) * (count + 1));
       
       for (count = 0, new_count = 0; sandbox_fs_sync_folders[count]; count++)
         {
           if (g_strcmp0 (sandbox_fs_sync_folders[count], ""))
-            item->priv->sandbox_fs_sync_folders[new_count++] = sandbox_fs_sync_folders[count];
+            item->priv->sandbox_fs_sync_folders[new_count++] = g_strdup (sandbox_fs_sync_folders[count]);
         }
     }
 
