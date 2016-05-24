@@ -1974,9 +1974,9 @@ garcon_menu_item_expand_command (GarconMenuItem *item,
   else if (mode == FS_PRIV_READ_ONLY)
     {
       if (disposable)
-        fs_str = "--overlay-home --overlay-disposable";
+        fs_str = "--overlay --overlay-disposable";
       else
-        fs_str = "--overlay-home";
+        fs_str = "--overlay";
     }
   else if (mode == FS_PRIV_PRIVATE)
     {
